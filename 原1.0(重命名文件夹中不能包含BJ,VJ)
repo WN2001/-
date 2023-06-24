@@ -1,0 +1,86 @@
+import os
+import re
+
+# 定义一个函数来重命名文件夹
+def rename_folder(folder):
+    # 获取文件夹的绝对路径
+    folder_path = os.path.abspath(folder)
+    # 获取文件夹的名称
+    folder_name = os.path.basename(folder)
+    # 定义一个正则表达式来匹配连续6位或8位数字
+    pattern = re.compile(r'(RJ)?(\d{6,8})')
+    # 在文件夹名称中查找匹配
+    match = pattern.search(folder_name)
+    # 如果找到匹配
+    if match:
+        # 获取匹配的字符串
+        matched_str = match.group()
+        # 如果匹配的字符串前面没有RJ，就在前面加上RJ
+        if not matched_str.startswith('RJ'):
+            matched_str = 'RJ' + matched_str
+        # 生成新的文件夹名称，只保留RJ和连续数字
+        new_folder_name = matched_str
+        # 生成新的文件夹路径
+        new_folder_path = os.path.join(os.path.dirname(folder_path), new_folder_name)
+        # 定义一个变量来记录重复的次数
+        count = 0
+        # 如果新的文件夹路径已经存在，就在后面加上(1)或(2)或(3)等，直到找到一个不存在的路径
+        while os.path.exists(new_folder_path):
+            count += 1
+            new_folder_name = matched_str + f'({count})'
+            new_folder_path = os.path.join(os.path.dirname(folder_path), new_folder_name)
+        # 重命名文件夹
+        os.rename(folder_path, new_folder_path)
+        # 打印重命名结果
+        print(f'Renamed {folder_name} to {new_folder_name}')
+    else:
+        # 如果没有找到匹配，就不处理
+        print(f'Skipped {folder_name}')
+
+# 定义一个函数来遍历一个文件夹下的所有一级子文件夹，并调用重命名函数
+def process_folder(parent_folder):
+    # 遍历父文件夹下的所有子文件和子文件夹
+    for item in os.listdir(parent_folder):
+        # 获取子文件或子文件夹的绝对路径
+        item_path = os.path.join(parent_folder, item)
+        # 如果是子文件夹，就调用重命名函数
+        if os.path.isdir(item_path):
+            rename_folder(item_path)
+
+# 定义一个函数来检测并删除不必要的数字
+def remove_number(parent_folder):
+    # 定义一个正则表达式来匹配带有数字的文件夹名称，如RJ123456(1)
+    pattern = re.compile(r'(RJ\d{6,8})\((\d+)\)')
+    # 遍历父文件夹下的所有子文件和子文件夹
+    for item in os.listdir(parent_folder):
+        # 获取子文件或子文件夹的绝对路径
+        item_path = os.path.join(parent_folder, item)
+        # 如果是子文件夹，就检测是否符合正则表达式
+        if os.path.isdir(item_path):
+            match = pattern.match(item)
+            # 如果符合正则表达式，就获取不带数字的部分，如RJ123456
+            if match:
+                base_name = match.group(1)
+                # 生成不带数字的文件夹路径，如RJ123456的路径
+                base_path = os.path.join(parent_folder, base_name)
+                # 如果不带数字的文件夹不存在，就把带数字的文件夹重命名为不带数字的文件夹，如把RJ123456(1)重命名为RJ123456
+                if not os.path.exists(base_path):
+                    os.rename(item_path, base_path)
+                    print(f'Removed number from {item} to {base_name}')
+                else:
+                    print(f'Kept number for {item}')
+
+# 定义一个主函数来执行程序
+def main():
+    # 输入要处理的父文件夹路径，可以是多个路径，用逗号分隔，可以是相对路径或绝对路径
+    parent_folders = input('Enter the paths of the parent folders, separated by commas: ')
+    # 把输入的字符串分割成列表，去掉空格和空字符串
+    parent_folders = [folder.strip() for folder in parent_folders.split(',') if folder.strip()]
+    # 对每个父文件夹路径，调用处理函数和检测函数
+    for parent_folder in parent_folders:
+        process_folder(parent_folder)
+        remove_number(parent_folder)
+
+# 如果这个模块是直接运行的，就调用主函数
+if __name__ == '__main__':
+    main()
